@@ -82,6 +82,11 @@ using universal_allocator = thrust::mr::stateless_resource_allocator<
   T, thrust::system::cuda::universal_memory_resource
 >;
 
+template<typename T>
+using virtual_allocator = thrust::mr::virtual_memory_resource_allocator<
+  T, thrust::system::cuda::virtual_memory_resource
+>;
+
 } // namespace cuda_cub
 
 namespace system { namespace cuda
@@ -90,6 +95,7 @@ using thrust::cuda_cub::malloc;
 using thrust::cuda_cub::free;
 using thrust::cuda_cub::allocator;
 using thrust::cuda_cub::universal_allocator;
+using thrust::cuda_cub::virtual_allocator;
 }} // namespace system::cuda
 
 /*! \namespace thrust::cuda
@@ -101,6 +107,7 @@ using thrust::cuda_cub::malloc;
 using thrust::cuda_cub::free;
 using thrust::cuda_cub::allocator;
 using thrust::cuda_cub::universal_allocator;
+using thrust::cuda_cub::virtual_allocator;
 } // namespace cuda
 
 THRUST_NAMESPACE_END

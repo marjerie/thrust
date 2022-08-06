@@ -207,8 +207,17 @@ __host__ __device__
 {
   if(n > 0)
   {
-    m_begin = iterator(alloc_traits::allocate(m_allocator,n));
-    m_size = n;
+    if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
+    {
+      pointer ptr = alloc_traits::allocate(m_allocator,n);
+      m_begin = iterator(ptr);
+      m_size = m_allocator.count;
+    }
+    else
+    {
+      m_begin = iterator(alloc_traits::allocate(m_allocator,n));
+      m_size = n;
+    }
   } // end if
   else
   {

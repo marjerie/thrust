@@ -892,37 +892,54 @@ template<typename T, typename Alloc>
       // do not exceed maximum storage
       new_capacity = thrust::min THRUST_PREVENT_MACRO_SUBSTITUTION <size_type>(new_capacity, max_size());
 
-      // create new storage
-      storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
-
-      // record how many constructors we invoke in the try block below
-      iterator new_end = new_storage.begin();
-
-      try
+      if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
       {
-        // construct copy all elements into the newly allocated storage
-        new_end = m_storage.uninitialized_copy(begin(), end(), new_storage.begin());
+        // find size difference to allocate
+        const std::size_t size_diff = new_capacity - capacity();
+        std::cout << "size diff: " << size_diff << '\n';
 
-        // construct new elements to insert
-        new_storage.default_construct_n(new_end, n);
-        new_end += n;
-      } // end try
-      catch(...)
+        // allocate takes the number of elements to allocate as input
+        size_t sz = size_diff/sizeof(T);
+        m_storage.allocate(sz);
+
+        append(n);
+
+      }
+      else
       {
-        // something went wrong, so destroy & deallocate the new storage
-        new_storage.destroy(new_storage.begin(), new_end);
-        new_storage.deallocate();
 
-        // rethrow
-        throw;
-      } // end catch
+        // create new storage
+        storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
+
+        // record how many constructors we invoke in the try block below
+        iterator new_end = new_storage.begin();
+
+        try
+        {
+          // construct copy all elements into the newly allocated storage
+          new_end = m_storage.uninitialized_copy(begin(), end(), new_storage.begin());
+
+          // construct new elements to insert
+          new_storage.default_construct_n(new_end, n);
+          new_end += n;
+        } // end try
+        catch(...)
+        {
+          // something went wrong, so destroy & deallocate the new storage
+          new_storage.destroy(new_storage.begin(), new_end);
+          new_storage.deallocate();
+
+          // rethrow
+          throw;
+        } // end catch
 
       // call destructors on the elements in the old storage
-      m_storage.destroy(begin(), end());
+        m_storage.destroy(begin(), end());
 
-      // record the vector's new state
-      m_storage.swap(new_storage);
-      m_size    = old_size + n;
+        // record the vector's new state
+        m_storage.swap(new_storage);
+        m_size    = old_size + n;
+      }
     } // end else
   } // end if
 } // end vector_base::append()
@@ -993,41 +1010,64 @@ template<typename T, typename Alloc>
         throw std::length_error("insert(): insertion exceeds max_size().");
       } // end if
 
-      storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
+      if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
+      { 
+        // find size difference to allocate
+        const std::size_t size_diff = new_capacity - capacity();
+        std::cout << "size diff: " << size_diff << '\n';
 
-      // record how many constructors we invoke in the try block below
-      iterator new_end = new_storage.begin();
+        // get index of the insertion
+        size_type index = thrust::disance(begin(), position);
 
-      try
+        // allocate takes the number of elements to allocate as input
+        size_t sz = size_diff/sizeof(T);
+        m_storage.allocate(sz);
+
+        // update position in case the begin pointer changes during allocation
+        iterator position_new = begin();
+        thrust::advance(position_new, index);
+
+        fill_insert(position_new, n, x);
+      }
+      else
       {
-        // construct copy elements before the insertion to the beginning of the newly
-        // allocated storage
-        new_end = m_storage.uninitialized_copy(begin(), position, new_storage.begin());
 
-        // construct new elements to insert
-        m_storage.uninitialized_fill_n(new_end, n, x);
-        new_end += n;
+        storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
 
-        // construct copy displaced elements from the old storage to the new storage
-        // remember [position, end()) refers to the old storage
-        new_end = m_storage.uninitialized_copy(position, end(), new_end);
-      } // end try
-      catch(...)
-      {
-        // something went wrong, so destroy & deallocate the new storage
-        m_storage.destroy(new_storage.begin(), new_end);
-        new_storage.deallocate();
+        // record how many constructors we invoke in the try block below
+        iterator new_end = new_storage.begin();
 
-        // rethrow
-        throw;
-      } // end catch
+        try
+        {
+          // construct copy elements before the insertion to the beginning of the newly
+          // allocated storage
+          new_end = m_storage.uninitialized_copy(begin(), position, new_storage.begin());
 
-      // call destructors on the elements in the old storage
-      m_storage.destroy(begin(), end());
+          // construct new elements to insert
+          m_storage.uninitialized_fill_n(new_end, n, x);
+          new_end += n;
 
-      // record the vector's new state
-      m_storage.swap(new_storage);
-      m_size    = old_size + n;
+          // construct copy displaced elements from the old storage to the new storage
+          // remember [position, end()) refers to the old storage
+          new_end = m_storage.uninitialized_copy(position, end(), new_end);
+        } // end try
+        catch(...)
+        {
+          // something went wrong, so destroy & deallocate the new storage
+          m_storage.destroy(new_storage.begin(), new_end);
+          new_storage.deallocate();
+
+          // rethrow
+          throw;
+        } // end catch
+
+        // call destructors on the elements in the old storage
+        m_storage.destroy(begin(), end());
+
+        // record the vector's new state
+        m_storage.swap(new_storage);
+        m_size    = old_size + n;
+      }
     } // end else
   } // end if
 } // end vector_base::fill_insert()
