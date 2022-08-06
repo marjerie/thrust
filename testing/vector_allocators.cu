@@ -354,8 +354,6 @@ void TestVirtualVectorAllocator() {
         std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
     }
 
-    std::cout << "int size: " << sizeof(int) << '\n';
-
     sz = 524286;
 
     std::cout << "-------------------------------- CREATING V3 ---------------------------------" << '\n';
@@ -366,7 +364,7 @@ void TestVirtualVectorAllocator() {
     std::cout << "v3 size: " << v3.size() << '\n';
 
     for (size_t i=0; i<v3.size(); i++) {
-        if (v3[i] != 1) std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+        if (v3[i] != 1) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
     }
 
     std::cout << "-------------------------------- CREATING V4 ---------------------------------" << '\n';
@@ -377,7 +375,7 @@ void TestVirtualVectorAllocator() {
     std::cout << "v4 size: " << v4.size() << '\n';
 
     for (size_t i=0; i<v4.size(); i++) {
-        if (v4[i] != 2) std::cout << "v4[" <<i<<"] = "  << v4[i] << '\n';
+        if (v4[i] != 2) std::cout << "error element: v4[" <<i<<"] = "  << v4[i] << '\n';
     }
     
     std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
@@ -408,7 +406,7 @@ void TestVirtualVectorAllocator() {
     std::cout << "v3 size: " << v3.size() << '\n';
 
     for (size_t i=v3.capacity()-15; i<v3.size(); i++) {
-        if (v3[i] != 20) std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+        if (v3[i] != 20) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
     }
 
     std::cout << "-------------------------------- CREATING V5 ---------------------------------" << '\n';
@@ -419,7 +417,7 @@ void TestVirtualVectorAllocator() {
     std::cout << "v5 size: " << v5.size() << '\n';
 
     for (size_t i=0; i<v5.size(); i++) {
-        if (v5[i] != 2) std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+        if (v5[i] != 2) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
     std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';

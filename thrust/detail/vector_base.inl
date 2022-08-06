@@ -28,6 +28,8 @@
 #include <thrust/iterator/iterator_traits.h>
 #include <thrust/detail/temporary_array.h>
 
+#include<thrust/system/cuda/memory.h>
+
 #include <stdexcept>
 
 THRUST_NAMESPACE_BEGIN
@@ -1017,7 +1019,7 @@ template<typename T, typename Alloc>
         std::cout << "size diff: " << size_diff << '\n';
 
         // get index of the insertion
-        size_type index = thrust::disance(begin(), position);
+        size_type index = thrust::distance(begin(), position);
 
         // allocate takes the number of elements to allocate as input
         size_t sz = size_diff/sizeof(T);

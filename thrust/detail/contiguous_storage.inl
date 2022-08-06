@@ -27,6 +27,8 @@
 
 #include <nv/target>
 
+#include<thrust/system/cuda/memory.h>
+
 #include <stdexcept> // for std::runtime_error
 #include <utility> // for use of std::swap in the WAR below
 
