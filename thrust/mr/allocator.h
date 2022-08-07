@@ -333,9 +333,9 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                 index_handles = other.index_handles;
                 alloc_sz = other.alloc_sz;
                 reserve_sz = other.reserve_sz;
-                //handles = other.handles;
-                //handle_sizes = other.handle_sizes;
-                //va_ranges = other.va_ranges;
+                // handles = other.handles;
+                // handle_sizes = other.handle_sizes;
+                // va_ranges = other.va_ranges;
             }
 
         /*! Conversion constructor from an allocator of a different type. Copies the memory resource pointer. */
@@ -412,7 +412,8 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
 
             count = alloc_sz/sizeof(T);
 
-            std::cout << "pointer is d_p: " << d_p << '\n';
+            std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
+            // std::cout << "pointer is d_p: " << d_p << '\n';
 
             return static_cast<typename allocator<T,Upstream>::pointer>(Pointer((void *)d_p));
             //return static_cast<pointer>(mem_res->do_allocate(n * sizeof(T), THRUST_ALIGNOF(T)));
@@ -535,19 +536,24 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         void deallocate(typename allocator<T,Upstream>::pointer p, size_t n)
         {
             std::cout << "hello from deallocate from allocator.h" << '\n';
-            std::cout << "pointer is " << d_p << " and " << p.get() << '\n';
+            std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
+            std::cout << "p.get() is " << p.get() << '\n';
             std::cout << "size (n) is " << n << '\n';
             CUresult status = CUDA_SUCCESS;
             (void)status;
             if (d_p != 0ULL) {
-                status = cuMemUnmap(d_p, alloc_sz);
+                // status = cuMemUnmap(d_p, alloc_sz);
+                status = cuMemUnmap((CUdeviceptr) p.get(), n*sizeof(T));
+                std::cout << "cuMemUnmap ===== " << status << '\n';
                 assert(status == CUDA_SUCCESS);
                 for (size_t i = 0ULL; i < index_va_ranges; i++) {
                     status = cuMemAddressFree(va_ranges[i].start, va_ranges[i].sz);
+                    std::cout << "cuMemAddressFree ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
                 for (size_t i = 0ULL; i < index_handles; i++) {
                     status = cuMemRelease(handles[i]);
+                    std::cout << "cuMemRelease ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
             }
