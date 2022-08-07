@@ -368,32 +368,44 @@ template<typename T, typename Alloc>
     // do not exceed maximum storage
     new_capacity = thrust::min THRUST_PREVENT_MACRO_SUBSTITUTION <size_type>(new_capacity, max_size());
 
-    // create new storage
-    storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
-
-    // record how many constructors we invoke in the try block below
-    iterator new_end = new_storage.begin();
-
-    try
+    if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
     {
-      // construct copy all elements into the newly allocated storage
-      new_end = m_storage.uninitialized_copy(begin(), end(), new_storage.begin());
-    } // end try
-    catch(...)
+      // find size difference to allocate
+      const std::size_t sz = new_capacity - capacity();
+      std::cout << "size diff: " << sz << '\n';
+
+      // allocate takes the number of elements to allocate as input
+      m_storage.allocate(sz);
+    }
+    else
     {
-      // something went wrong, so destroy & deallocate the new storage
-      new_storage.destroy(new_storage.begin(), new_end);
-      new_storage.deallocate();
+      // create new storage
+      storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
 
-      // rethrow
-      throw;
-    } // end catch
+      // record how many constructors we invoke in the try block below
+      iterator new_end = new_storage.begin();
 
-    // call destructors on the elements in the old storage
-    m_storage.destroy(begin(), end());
+      try
+      {
+        // construct copy all elements into the newly allocated storage
+        new_end = m_storage.uninitialized_copy(begin(), end(), new_storage.begin());
+      } // end try
+      catch(...)
+      {
+        // something went wrong, so destroy & deallocate the new storage
+        new_storage.destroy(new_storage.begin(), new_end);
+        new_storage.deallocate();
 
-    // record the vector's new state
-    m_storage.swap(new_storage);
+        // rethrow
+        throw;
+      } // end catch
+
+      // call destructors on the elements in the old storage
+      m_storage.destroy(begin(), end());
+
+      // record the vector's new state
+      m_storage.swap(new_storage);
+    }
   } // end if
 } // end vector_base::reserve()
 
@@ -897,19 +909,16 @@ template<typename T, typename Alloc>
       if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
       {
         // find size difference to allocate
-        const std::size_t size_diff = new_capacity - capacity();
-        std::cout << "size diff: " << size_diff << '\n';
+        const std::size_t sz = new_capacity - capacity();
+        std::cout << "size diff: " << sz << '\n';
 
         // allocate takes the number of elements to allocate as input
-        size_t sz = size_diff/sizeof(T);
         m_storage.allocate(sz);
 
         append(n);
-
       }
       else
       {
-
         // create new storage
         storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
 
@@ -935,7 +944,7 @@ template<typename T, typename Alloc>
           throw;
         } // end catch
 
-      // call destructors on the elements in the old storage
+        // call destructors on the elements in the old storage
         m_storage.destroy(begin(), end());
 
         // record the vector's new state
@@ -1015,14 +1024,13 @@ template<typename T, typename Alloc>
       if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
       { 
         // find size difference to allocate
-        const std::size_t size_diff = new_capacity - capacity();
-        std::cout << "size diff: " << size_diff << '\n';
+        const std::size_t sz = new_capacity - capacity();
+        std::cout << "size diff: " << sz << '\n';
 
         // get index of the insertion
         size_type index = thrust::distance(begin(), position);
 
         // allocate takes the number of elements to allocate as input
-        size_t sz = size_diff/sizeof(T);
         m_storage.allocate(sz);
 
         // update position in case the begin pointer changes during allocation
@@ -1033,7 +1041,6 @@ template<typename T, typename Alloc>
       }
       else
       {
-
         storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
 
         // record how many constructors we invoke in the try block below

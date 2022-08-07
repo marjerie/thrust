@@ -304,7 +304,7 @@ void TestVirtualVectorAllocator() {
     }
 
     // std::cout << "-------------------------------- CREATING V1 = V11 ---------------------------------" << '\n';
-    // FIXME: uncomment this after operator= is fixed
+    // // FIXME: uncomment this after operator= is fixed
     // v1 = v11;
 
     // std::cout << "v1 capacity: " << v1.capacity() << '\n';
@@ -344,7 +344,7 @@ void TestVirtualVectorAllocator() {
     }
 
     // std::cout << "-------------------------------- CREATING V11 = V1 ---------------------------------" << '\n';
-    // FIXME: uncomment this after operator= is fixed
+    // // FIXME: uncomment this after operator= is fixed
     // v11 = v1;
 
     // std::cout << "v11 capacity: " << v11.capacity() << '\n';
@@ -456,8 +456,16 @@ void TestVirtualVectorAllocator() {
     std::cout << "v5 capacity: " << v5.capacity() << '\n';
     std::cout << "v5 size: " << v5.size() << '\n';
 
+    std::cout << "----------------------- RESERVING CAPACITY+1 FOR V5 -------------------------------" << '\n';
+
+    v5.reserve(v5.capacity() + 1);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
     std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
 
+    // // FIXME: uncomment this after operator= is fixed
     // v4 = v3;
 
     // std::cout << "v4 capacity: " << v4.capacity() << '\n';
