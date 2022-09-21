@@ -839,40 +839,67 @@ template<typename T, typename Alloc>
         throw std::length_error("insert(): insertion exceeds max_size().");
       } // end if
 
-      storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
-
-      // record how many constructors we invoke in the try block below
-      iterator new_end = new_storage.begin();
-
-      try
+      if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
       {
-        // construct copy elements before the insertion to the beginning of the newly
-        // allocated storage
-        new_end = m_storage.uninitialized_copy(begin(), position, new_storage.begin());
+        // find size difference to allocate
+        const std::size_t sz = new_capacity - capacity();
+        std::cout << "size diff: " << sz << '\n';
 
-        // construct copy elements to insert
-        new_end = m_storage.uninitialized_copy(first, last, new_end);
+        // get indexes of the insertion
+        size_type index = thrust::distance(begin(), position);
+        size_type index_first = thrust::distance(begin(), first);
+        size_type index_last = thrust::distance(begin(), last);
 
-        // construct copy displaced elements from the old storage to the new storage
-        // remember [position, end()) refers to the old storage
-        new_end = m_storage.uninitialized_copy(position, end(), new_end);
-      } // end try
-      catch(...)
+        // allocate takes the number of elements to allocate as input
+        m_storage.allocate(sz);
+
+        // update positions in case the begin pointer changes during allocation
+        iterator position_new = begin();
+        iterator first_new = begin();
+        iterator last_new = begin();
+        thrust::advance(position_new, index);
+        thrust::advance(first_new, index_first);
+        thrust::advance(last_new, index_last);
+
+        copy_insert(position_new, first_new, last_new);
+      }
+      else
       {
-        // something went wrong, so destroy & deallocate the new storage
-        m_storage.destroy(new_storage.begin(), new_end);
-        new_storage.deallocate();
+        storage_type new_storage(copy_allocator_t(), m_storage, new_capacity);
 
-        // rethrow
-        throw;
-      } // end catch
+        // record how many constructors we invoke in the try block below
+        iterator new_end = new_storage.begin();
 
-      // call destructors on the elements in the old storage
-      m_storage.destroy(begin(), end());
+        try
+        {
+          // construct copy elements before the insertion to the beginning of the newly
+          // allocated storage
+          new_end = m_storage.uninitialized_copy(begin(), position, new_storage.begin());
 
-      // record the vector's new state
-      m_storage.swap(new_storage);
-      m_size = old_size + num_new_elements;
+          // construct copy elements to insert
+          new_end = m_storage.uninitialized_copy(first, last, new_end);
+
+          // construct copy displaced elements from the old storage to the new storage
+          // remember [position, end()) refers to the old storage
+          new_end = m_storage.uninitialized_copy(position, end(), new_end);
+        } // end try
+        catch(...)
+        {
+          // something went wrong, so destroy & deallocate the new storage
+          m_storage.destroy(new_storage.begin(), new_end);
+          new_storage.deallocate();
+
+          // rethrow
+          throw;
+        } // end catch
+
+        // call destructors on the elements in the old storage
+        m_storage.destroy(begin(), end());
+
+        // record the vector's new state
+        m_storage.swap(new_storage);
+        m_size = old_size + num_new_elements;
+      }
     } // end else
   } // end if
 } // end vector_base::copy_insert()

@@ -396,7 +396,7 @@ void TestVirtualVectorAllocator() {
 
     size_t rem = v3.capacity() - v3.size();
 
-    std::cout << "-------------------------------- PUSHING BACK V3 WITH " << rem << " ELEMENTS ---------------------------------" << '\n';
+    std::cout << "-------------------------- PUSHING BACK V3 WITH " << rem << " ELEMENTS ---------------------------------" << '\n';
 
     for (size_t i=0; i<rem; i++) {
         v3.push_back(20);
@@ -456,12 +456,30 @@ void TestVirtualVectorAllocator() {
     std::cout << "v5 capacity: " << v5.capacity() << '\n';
     std::cout << "v5 size: " << v5.size() << '\n';
 
+    std::cout << "----------------------- TESTING RESERVE -------------------------------" << '\n';
     std::cout << "----------------------- RESERVING CAPACITY+1 FOR V5 -------------------------------" << '\n';
 
     v5.reserve(v5.capacity() + 1);
 
     std::cout << "v5 capacity: " << v5.capacity() << '\n';
     std::cout << "v5 size: " << v5.size() << '\n';
+
+    std::cout << "----------------------- TESTING COPY_INSERT -------------------------------" << '\n';
+    std::cout << "--------- COPYING LAST 5 ELEMENTS TO POSITION 5TH FROM LAST ON V5 ---------" << '\n';
+
+    for (size_t i=v5.size()-5; i<v5.size(); i++) {
+        v5[i] = v5.size() - i;
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    v5.insert(v5.end() - 5, v5.end() - 5, v5.end());
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=v5.size()-15; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
 
     std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
 
