@@ -481,6 +481,131 @@ void TestVirtualVectorAllocator() {
         std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
+    std::cout << "----------------------- TESTING INSERT -------------------------------" << '\n';
+    std::cout << "--------- INSERTING 0 TO SECOND TO LAST POSITION ON V5 ---------" << '\n';
+
+    v5.insert(v5.end() - 1, 0);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=v5.size()-5; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "--------- INSERTING 5 0s TO FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+
+    v5.insert(v5.end() - 4, 5, 0);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=v5.size()-10; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "----------------------- TESTING ERASE -----------------------------" << '\n';
+    std::cout << "--------- ERASING 5 0s FROM FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+
+    v5.erase(v5.end() - 9, v5.end() - 4);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=v5.size()-10; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "--------- ERASING 0 FROM SECOND TO LAST POSITION ON V5 ---------" << '\n';
+
+    v5.erase(v5.end() - 2);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=v5.size()-5; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "----------------------- TESTING FILL_ASSIGN -----------------------------" << '\n';
+    std::cout << "--------- ASSIGNING 7 TO MORE THAN CAPACITY ---------" << '\n';
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    v5.assign(v5.capacity() + 1, 7);
+
+    for (size_t i=0; i<v5.size(); i++) {
+        if (v5[i] != 7) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    std::cout << "--------- ASSIGNING 8 TO MORE THAN SIZE (+10) ---------" << '\n';
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    v5.assign(v5.size() + 10, 8);
+
+    for (size_t i=0; i<v5.size(); i++) {
+        if (v5[i] != 8) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    std::cout << "--------- ASSIGNING 9 TO LESS THAN SIZE (-10) ---------" << '\n';
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    v5.assign(v5.size() - 10, 9);
+
+    for (size_t i=0; i<v5.size(); i++) {
+        if (v5[i] != 9) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    std::cout << "----------------------- TESTING CLEAR ON V5 -----------------------------" << '\n';
+
+    v5.clear();
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    std::cout << "----------------------- TESTING RESIZE ON V5 -----------------------------" << '\n';
+
+    v5.resize(10, 10);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=0; i<v5.size(); i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }
+
+    std::cout << "----------------------- RESIZING TO CAPACITY -----------------------------" << '\n';
+
+    v5.resize(v5.capacity());
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
+    for (size_t i=0; i<12; i++) {
+        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    }  
+
+    std::cout << "----------------------- RESIZING TO CAPACITY + 1 -----------------------------" << '\n';
+
+    v5.resize(v5.capacity() + 1);
+
+    std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    std::cout << "v5 size: " << v5.size() << '\n';
+
     std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
 
     // // FIXME: uncomment this after operator= is fixed

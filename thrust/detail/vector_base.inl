@@ -1205,31 +1205,64 @@ template<typename T, typename Alloc>
   void vector_base<T,Alloc>
     ::fill_assign(size_type n, const T &x)
 {
-  if(n > capacity())
+  if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
   {
-    // XXX we should also include a copy of the allocator:
-    // vector_base<T,Alloc> temp(n, x, get_allocator());
-    vector_base<T,Alloc> temp(n, x);
-    temp.swap(*this);
-  } // end if
-  else if(n > size())
-  {
-    // fill to existing elements
-    thrust::fill(begin(), end(), x);
+    if(n > capacity())
+    {
+      const std::size_t sz = n - capacity();
+      std::cout << "size diff: " << sz << '\n';
 
-    // construct uninitialized elements
-    m_storage.uninitialized_fill_n(end(), n - size(), x);
+      // allocate takes the number of elements to allocate as input
+      m_storage.allocate(sz);
+    }
+    if(n > size())
+    {
+      // fill to existing elements
+      thrust::fill(begin(), end(), x);
 
-    // adjust size
-    m_size += (n - size());
-  } // end else if
+      // construct uninitialized elements
+      m_storage.uninitialized_fill_n(end(), n - size(), x);
+
+      // adjust size
+      m_size += (n - size());
+    }
+    else
+    {
+      // fill to existing elements
+      iterator new_end = thrust::fill_n(begin(), n, x);
+
+      // erase the elements after the fill
+      erase(new_end, end());
+    }
+  }
   else
   {
-    // fill to existing elements
-    iterator new_end = thrust::fill_n(begin(), n, x);
+    if(n > capacity())
+    {
+      // XXX we should also include a copy of the allocator:
+      // vector_base<T,Alloc> temp(n, x, get_allocator());
+      vector_base<T,Alloc> temp(n, x);
+      temp.swap(*this);
+    } // end if
+    else if(n > size())
+    {
+      // fill to existing elements
+      thrust::fill(begin(), end(), x);
 
-    // erase the elements after the fill
-    erase(new_end, end());
+      // construct uninitialized elements
+      m_storage.uninitialized_fill_n(end(), n - size(), x);
+
+      // adjust size
+      m_size += (n - size());
+    } // end else if
+    else
+    {
+      // fill to existing elements
+      iterator new_end = thrust::fill_n(begin(), n, x);
+
+      // erase the elements after the fill
+      erase(new_end, end());
+    } // end else
   } // end else
 } // end vector_base::fill_assign()
 
