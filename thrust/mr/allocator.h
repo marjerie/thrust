@@ -295,8 +295,11 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         };
 
         __host__
-        virtual_memory_resource_allocator() : base(get_global_resource<Upstream>())
+        // virtual_memory_resource_allocator() : base(get_global_resource<Upstream>())
+        virtual_memory_resource_allocator() : base(new Upstream)
         {
+            //base = get_global_resource<Upstream>;
+            // std::cout << "mem_res: " << this->mem_res << '\n';
             d_p = 0ULL;
             count = 0;
             chunk_sz = 0;
@@ -304,21 +307,24 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             index_handles = 0;
             alloc_sz = 0;
             reserve_sz = 0;
-            CUresult status = cuInit(0);
-            printf("cuInit ==== %d\n", status);
+            // CUresult status = cuInit(0);
+            cuInit(0);
+            // printf("cuInit ==== %d\n", status);
 
             prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
             prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
             int device_id;
             cudaError_t status_new = cudaGetDevice(&device_id);
-            printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
+            cudaGetDevice(&device_id);
+            // printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
             prop.location.id = device_id;
 
             accessDesc.location = prop.location;
             accessDesc.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
 
-            status = cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
-            std::cout << "chunk size: " << chunk_sz << '\n';
+            cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+            // status = cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+            // std::cout << "chunk size: " << chunk_sz << '\n';
 
         }
 
@@ -326,13 +332,22 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         __host__ __device__
         virtual_memory_resource_allocator(const virtual_memory_resource_allocator & other)
             : base(other) {
-                d_p = other.d_p;
-                count = other.count;
+                d_p = 0ULL;
+                count = 0;
+                // printf( " d_p is %llu and other.d_p is %llu \n", d_p, other.d_p);
+                //chunk_sz = 0;
+                index_va_ranges = 0;
+                index_handles = 0;
+                //alloc_sz = 0;
+                //reserve_sz = 0;
+                //d_p = other.d_p;
+                //count = other.count;
                 chunk_sz = other.chunk_sz;
-                index_va_ranges = other.index_va_ranges;
-                index_handles = other.index_handles;
+                //index_va_ranges = other.index_va_ranges;
+                //index_handles = other.index_handles;
                 alloc_sz = other.alloc_sz;
                 reserve_sz = other.reserve_sz;
+                //Pointer ptr = allocate(0);
                 // handles = other.handles;
                 // handle_sizes = other.handle_sizes;
                 // va_ranges = other.va_ranges;
@@ -354,7 +369,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         typename allocator<T,Upstream>::pointer allocate(size_t n)
         // pointer allocate(size_t n)
         {
-            std::cout << "hello from allocator.h" << '\n';
+            // std::cout << "hello from allocator.h" << '\n';
             
             CUmemGenericAllocationHandle handle;
             size_t size_diff = n * sizeof(T);
@@ -369,7 +384,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             prop_new.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
             int device_id;
             cudaError_t status_new = cudaGetDevice(&device_id);
-            printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
+            // printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
             prop_new.location.id = device_id;
 
             accessDesc_new.location = prop_new.location;
@@ -380,39 +395,39 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                 // cuMemMap(d_p + alloc_sz, sz, 0ULL, handle, 0ULL);
                 // cuMemSetAccess(d_p + alloc_sz, sz, &accessDesc, 1ULL);
                 if ((status = cuMemCreate(&handle, sz, &prop_new, 0ULL)) == CUDA_SUCCESS) {
-                    std::cout << "cuMemCreate success " << status << '\n';
+                    // std::cout << "cuMemCreate success " << status << '\n';
                     if ((status = cuMemMap(d_p + alloc_sz, sz, 0ULL, handle, 0ULL)) == CUDA_SUCCESS) {
-                        std::cout << "cuMemMap success " << status << '\n';
+                        // std::cout << "cuMemMap success " << status << '\n';
                         if ((status = cuMemSetAccess(d_p + alloc_sz, sz, &accessDesc_new, 1ULL)) == CUDA_SUCCESS) {
-                            std::cout << "cumemsetaccess success" << '\n';
+                            // std::cout << "cumemsetaccess success" << '\n';
                             update_handles(handle, sz);
                             alloc_sz += sz;
                         }
                         if (status != CUDA_SUCCESS) {
-                            std::cout << "cumemsetaccess failed..." << '\n';
-                            //(void)cuMemUnmap(d_p + alloc_sz, sz);
-                            std::cout << "cuMemUnmap " << cuMemUnmap(d_p + alloc_sz, sz) << '\n';
+                            // std::cout << "cumemsetaccess failed..." << '\n';
+                            (void)cuMemUnmap(d_p + alloc_sz, sz);
+                            // std::cout << "cuMemUnmap " << cuMemUnmap(d_p + alloc_sz, sz) << '\n';
                         }
                     }
                     if (status != CUDA_SUCCESS) {
-                        std::cout << "cuMemMap failed... " << status << '\n';
-                        //(void)cuMemRelease(handle);
-                        std::cout << "cuMemRelease " << cuMemRelease(handle) << '\n';
+                        // std::cout << "cuMemMap failed... " << status << '\n';
+                        (void)cuMemRelease(handle);
+                        // std::cout << "cuMemRelease " << cuMemRelease(handle) << '\n';
                     }    
                 }
-                else
-                {
-                    std::cout << "cuMemCreate failed... " << status << '\n';
-                }
+            //     else
+            //     {
+            //         std::cout << "cuMemCreate failed... " << status << '\n';
+            //     }
             }
-            else
-            {
-                std::cout << "reserve failed... " << status << '\n';
-            }
+            // else
+            // {
+            //     std::cout << "reserve failed... " << status << '\n';
+            // }
 
             count = alloc_sz/sizeof(T);
 
-            std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
+            // std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
             // std::cout << "pointer is d_p: " << d_p << '\n';
 
             return static_cast<typename allocator<T,Upstream>::pointer>(Pointer((void *)d_p));
@@ -432,7 +447,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             prop_new.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
             int device_id;
             cudaError_t status_new = cudaGetDevice(&device_id);
-            printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
+            // printf("cudaGetDevice ==== %d device_id = %d\n", status_new, device_id);
             prop_new.location.id = device_id;
 
             accessDesc_new.location = prop_new.location;
@@ -441,47 +456,47 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             size_t aligned_sz = ((new_sz + chunk_sz - 1) / chunk_sz) * chunk_sz;
 
             status = cuMemAddressReserve(&new_ptr, (aligned_sz - reserve_sz), 0ULL, d_p + reserve_sz, 0ULL);
-            std::cout << "cuMemAddressReserve ===== " << status << '\n';
+            // std::cout << "cuMemAddressReserve ===== " << status << '\n';
 
             if (status != CUDA_SUCCESS || (new_ptr != d_p + reserve_sz))
             {
                 if (new_ptr != 0ULL)
                 {
                     status = cuMemAddressFree(new_ptr, (aligned_sz - reserve_sz));
-                    std::cout << "cuMemAddressFree ===== " << status << '\n';
+                    // std::cout << "cuMemAddressFree ===== " << status << '\n';
                 }
 
                 status = cuMemAddressReserve(&new_ptr, aligned_sz, 0ULL, 0U, 0);
-                std::cout << "cuMemAddressReserve ===== " << status << '\n';
+                // std::cout << "cuMemAddressReserve ===== " << status << '\n';
 
                 if (status == CUDA_SUCCESS && d_p != 0ULL)
                 {
                     CUdeviceptr ptr = new_ptr;
                     status = cuMemUnmap(d_p, alloc_sz);
-                    std::cout << "cuMemUnmap ===== " << status << '\n';
+                    // std::cout << "cuMemUnmap ===== " << status << '\n';
 
                     for (size_t i = 0ULL; i < index_handles; i++) {
                         const size_t hdl_sz = handle_sizes[i];
                         if ((status = cuMemMap(ptr, hdl_sz, 0ULL, handles[i], 0ULL)) != CUDA_SUCCESS)
                             break;
-                        else std::cout << "cuMemMap ===== " << status << '\n';
+                        // else std::cout << "cuMemMap ===== " << status << '\n';
                         if ((status = cuMemSetAccess(ptr, hdl_sz, &accessDesc_new, 1ULL)) != CUDA_SUCCESS)
                             break;
-                        else std::cout << "cuMemSetAccess ===== " << status << '\n';
+                        // else std::cout << "cuMemSetAccess ===== " << status << '\n';
                         ptr += hdl_sz;
                     }
                     if (status != CUDA_SUCCESS) {
                         status = cuMemUnmap(new_ptr, aligned_sz);
-                        std::cout << "cuMemUnmap ===== " << status << '\n';
+                        // std::cout << "cuMemUnmap ===== " << status << '\n';
                         assert(status == CUDA_SUCCESS);
                         status = cuMemAddressFree(new_ptr, aligned_sz);
-                        std::cout << "cuMemAddressFree ===== " << status << '\n';
+                        // std::cout << "cuMemAddressFree ===== " << status << '\n';
                         assert(status == CUDA_SUCCESS);
                     }
                     else {
                         for (size_t i = 0ULL; i < index_va_ranges; i++) {
                             status = cuMemAddressFree(va_ranges[i].start, va_ranges[i].sz);
-                            std::cout << "cuMemAddressFree ===== " << status << '\n';
+                            // std::cout << "cuMemAddressFree ===== " << status << '\n';
                         }
                         index_va_ranges = 0;
                     }
@@ -520,40 +535,50 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         {
             handles[index_handles] = handle;
             handle_sizes[index_handles++] = sz;
+            // std::cout << "handle: " << std::hex << handles[index_handles - 1] << std::dec << "handle size: " << handle_sizes[index_handles - 1] << '\n'; 
         }
 
-        __host__ __device__
+        __host__
         void update_va_ranges(CUdeviceptr ptr, size_t range_sz)
         {
             Range r;
             //r.start = (CUdeviceptr) ptr;
             r.start = ptr;
             r.sz = range_sz;
+            // std::cout << "va range " << '\n'; 
+            // std::cout << "ptr start: " << std::hex << ptr << std::dec << "size: " << range_sz << '\n'; 
             va_ranges[index_va_ranges++] = r;
         }
 
         __host__
         void deallocate(typename allocator<T,Upstream>::pointer p, size_t n)
         {
-            std::cout << "hello from deallocate from allocator.h" << '\n';
-            std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
-            std::cout << "p.get() is " << p.get() << '\n';
-            std::cout << "size (n) is " << n << '\n';
+            // std::cout << "hello from deallocate from allocator.h" << '\n';
+            // std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
+            // std::cout << "p.get() is " << p.get() << '\n';
+            // std::cout << "size (n) is " << n << '\n';
+            // std::cout << "count is " << count << '\n';
+            // for (size_t i = 0ULL; i < index_va_ranges; i++) {
+            //     std::cout << "va range: "<< std::hex << va_ranges[i].start << std::dec << " size: " << va_ranges[i].sz << '\n';
+            // }
+            // for (size_t i = 0ULL; i < index_handles; i++) {
+            //     std::cout << "handles: "<< std::hex << handles[i] << std::dec << '\n';
+            // }
             CUresult status = CUDA_SUCCESS;
             (void)status;
             if (d_p != 0ULL) {
                 // status = cuMemUnmap(d_p, alloc_sz);
                 status = cuMemUnmap((CUdeviceptr) p.get(), n*sizeof(T));
-                std::cout << "cuMemUnmap ===== " << status << '\n';
+                // std::cout << "cuMemUnmap ===== " << status << '\n';
                 assert(status == CUDA_SUCCESS);
                 for (size_t i = 0ULL; i < index_va_ranges; i++) {
                     status = cuMemAddressFree(va_ranges[i].start, va_ranges[i].sz);
-                    std::cout << "cuMemAddressFree ===== " << status << '\n';
+                    // std::cout << "cuMemAddressFree ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
                 for (size_t i = 0ULL; i < index_handles; i++) {
                     status = cuMemRelease(handles[i]);
-                    std::cout << "cuMemRelease ===== " << status << '\n';
+                    // std::cout << "cuMemRelease ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
             }
@@ -563,7 +588,11 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         /*! Destructor. */
         // removed __device__
         __host__ __device__
-        ~virtual_memory_resource_allocator() {}
+        ~virtual_memory_resource_allocator() {
+            // delete this->mem_res;
+            // this->mem_res = nullptr;
+            // printf("destructor called\n");
+        }
 };
 
 } // end mr

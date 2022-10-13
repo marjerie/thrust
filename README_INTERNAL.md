@@ -1,7 +1,7 @@
 
 ```bash
 
-# Create build directory:
+# Create build directory
 mkdir build
 cd build
 

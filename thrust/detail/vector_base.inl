@@ -127,11 +127,12 @@ template<typename T, typename Alloc>
 {
   if(this != &v)
   {
-    m_storage.destroy_on_allocator_mismatch(v.m_storage, begin(), end());
-    m_storage.deallocate_on_allocator_mismatch(v.m_storage);
-
-    m_storage.propagate_allocator(v.m_storage);
-
+    if constexpr (!(std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value))
+    {
+      m_storage.destroy_on_allocator_mismatch(v.m_storage, begin(), end());
+      m_storage.deallocate_on_allocator_mismatch(v.m_storage);
+      m_storage.propagate_allocator(v.m_storage);
+    }
     assign(v.begin(), v.end());
   } // end if
 
@@ -372,7 +373,7 @@ template<typename T, typename Alloc>
     {
       // find size difference to allocate
       const std::size_t sz = new_capacity - capacity();
-      std::cout << "size diff: " << sz << '\n';
+      // std::cout << "size diff: " << sz << '\n';
 
       // allocate takes the number of elements to allocate as input
       m_storage.allocate(sz);
@@ -843,7 +844,7 @@ template<typename T, typename Alloc>
       {
         // find size difference to allocate
         const std::size_t sz = new_capacity - capacity();
-        std::cout << "size diff: " << sz << '\n';
+        // std::cout << "size diff: " << sz << '\n';
 
         // get indexes of the insertion
         size_type index = thrust::distance(begin(), position);
@@ -937,7 +938,7 @@ template<typename T, typename Alloc>
       {
         // find size difference to allocate
         const std::size_t sz = new_capacity - capacity();
-        std::cout << "size diff: " << sz << '\n';
+        // std::cout << "size diff: " << sz << '\n';
 
         // allocate takes the number of elements to allocate as input
         m_storage.allocate(sz);
@@ -1052,7 +1053,7 @@ template<typename T, typename Alloc>
       { 
         // find size difference to allocate
         const std::size_t sz = new_capacity - capacity();
-        std::cout << "size diff: " << sz << '\n';
+        // std::cout << "size diff: " << sz << '\n';
 
         // get index of the insertion
         size_type index = thrust::distance(begin(), position);
@@ -1157,48 +1158,92 @@ template<typename T, typename Alloc>
 {
   const size_type n = thrust::distance(first, last);
 
-  if(n > capacity())
+  if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
   {
-    storage_type new_storage(copy_allocator_t(), m_storage);
-    allocate_and_copy(n, first, last, new_storage);
+    if(n > capacity())
+    {
+      const std::size_t sz = n - capacity();
+      // std::cout << "size diff: " << sz << '\n';
 
-    // call destructors on the elements in the old storage
-    m_storage.destroy(begin(), end());
+      // allocate takes the number of elements to allocate as input
+      m_storage.allocate(sz);
+    } // end if
+    if(size() >= n)
+    {
+      // we can already accomodate the new range
+      iterator new_end = thrust::copy(first, last, begin());
 
-    // record the vector's new state
-    m_storage.swap(new_storage);
-    m_size = n;
-  } // end if
-  else if(size() >= n)
-  {
-    // we can already accomodate the new range
-    iterator new_end = thrust::copy(first, last, begin());
+      // destroy the elements we don't need
+      m_storage.destroy(new_end, end());
 
-    // destroy the elements we don't need
-    m_storage.destroy(new_end, end());
+      // update size
+      m_size = n;
+    } // end else if
+    else
+    {
+      // range fits inside allocated storage, but some elements
+      // have not been constructed yet
 
-    // update size
-    m_size = n;
-  } // end else if
+      // XXX TODO we could possibly implement this with one call
+      // to transform rather than copy + uninitialized_copy
+
+      // copy to elements which already exist
+      RandomAccessIterator mid = first;
+      thrust::advance(mid, size());
+      thrust::copy(first, mid, begin());
+
+      // uninitialize_copy to elements which must be constructed
+      m_storage.uninitialized_copy(mid, last, end());
+
+      // update size
+      m_size = n;
+    } // end else
+  }
   else
   {
-    // range fits inside allocated storage, but some elements
-    // have not been constructed yet
+    if(n > capacity())
+    {
+      storage_type new_storage(copy_allocator_t(), m_storage);
+      allocate_and_copy(n, first, last, new_storage);
 
-    // XXX TODO we could possibly implement this with one call
-    // to transform rather than copy + uninitialized_copy
+      // call destructors on the elements in the old storage
+      m_storage.destroy(begin(), end());
 
-    // copy to elements which already exist
-    RandomAccessIterator mid = first;
-    thrust::advance(mid, size());
-    thrust::copy(first, mid, begin());
+      // record the vector's new state
+      m_storage.swap(new_storage);
+      m_size = n;
+    } // end if
+    else if(size() >= n)
+    {
+      // we can already accomodate the new range
+      iterator new_end = thrust::copy(first, last, begin());
 
-    // uninitialize_copy to elements which must be constructed
-    m_storage.uninitialized_copy(mid, last, end());
+      // destroy the elements we don't need
+      m_storage.destroy(new_end, end());
 
-    // update size
-    m_size = n;
-  } // end else
+      // update size
+      m_size = n;
+    } // end else if
+    else
+    {
+      // range fits inside allocated storage, but some elements
+      // have not been constructed yet
+
+      // XXX TODO we could possibly implement this with one call
+      // to transform rather than copy + uninitialized_copy
+
+      // copy to elements which already exist
+      RandomAccessIterator mid = first;
+      thrust::advance(mid, size());
+      thrust::copy(first, mid, begin());
+
+      // uninitialize_copy to elements which must be constructed
+      m_storage.uninitialized_copy(mid, last, end());
+
+      // update size
+      m_size = n;
+    } // end else
+  }
 } // end vector_base::assign()
 
 template<typename T, typename Alloc>
@@ -1210,7 +1255,7 @@ template<typename T, typename Alloc>
     if(n > capacity())
     {
       const std::size_t sz = n - capacity();
-      std::cout << "size diff: " << sz << '\n';
+      // std::cout << "size diff: " << sz << '\n';
 
       // allocate takes the number of elements to allocate as input
       m_storage.allocate(sz);

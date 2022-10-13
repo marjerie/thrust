@@ -148,6 +148,11 @@ void TestVectorAllocatorConstructors()
     ASSERT_EQUAL(Alloc::last_allocated, 2);
     Alloc::last_allocated = 0;
 
+    //vector needs a default constructor that takes another vector -> copy constructor
+    //shared_ptr
+    //unique_ptr
+    //separate constructor (vector, & alloc)
+
 #if THRUST_CPP_DIALECT >= 2011
     // FIXME: uncomment this after the vector_base(vector_base&&, const Alloc&)
     // is fixed and implemented
@@ -290,7 +295,12 @@ void TestVirtualVectorAllocator() {
 
     for (size_t i=0; i<v11.size(); i++) {
         std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+        ASSERT_EQUAL(v11[i], 15);
     }
+
+    std::cout << "v11 pointer: " << v11.data() << '\n';
+
+    ASSERT_EQUAL(v11.size(), sz);
 
     std::cout << "-------------------------------- CREATING V1 ---------------------------------" << '\n';
 
@@ -301,18 +311,26 @@ void TestVirtualVectorAllocator() {
 
     for (size_t i=0; i<v1.size(); i++) {
         std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+        ASSERT_EQUAL(v1[i], 68);
     }
 
-    // std::cout << "-------------------------------- CREATING V1 = V11 ---------------------------------" << '\n';
-    // // FIXME: uncomment this after operator= is fixed
-    // v1 = v11;
+    std::cout << "v1 pointer: " << v1.data() << '\n';
+    
+    ASSERT_EQUAL(v1.size(), sz);
 
-    // std::cout << "v1 capacity: " << v1.capacity() << '\n';
-    // std::cout << "v1 size: " << v1.size() << '\n';
+    std::cout << "-------------------------------- CREATING V1 = V11 ---------------------------------" << '\n';
+    // FIXME: uncomment this after operator= is fixed
+    v1 = v11;
 
-    // for (size_t i=0; i<v1.size(); i++) {
-    //     std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
-    // }
+    std::cout << "v1 capacity: " << v1.capacity() << '\n';
+    std::cout << "v1 size: " << v1.size() << '\n';
+
+    for (size_t i=0; i<v1.size(); i++) {
+        std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+    }
+
+    std::cout << "v1 pointer: " << v1.data() << '\n';
+    std::cout << "v11 pointer: " << v11.data() << '\n';
 
     std::cout << "-------------------------------- ASSIGNING VALUES TO V11[2,5,8] ---------------------------------" << '\n';
 
@@ -343,16 +361,16 @@ void TestVirtualVectorAllocator() {
         std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
 
-    // std::cout << "-------------------------------- CREATING V11 = V1 ---------------------------------" << '\n';
-    // // FIXME: uncomment this after operator= is fixed
-    // v11 = v1;
+    std::cout << "-------------------------------- CREATING V11 = V1 ---------------------------------" << '\n';
+    // FIXME: uncomment this after operator= is fixed
+    v11 = v1;
 
-    // std::cout << "v11 capacity: " << v11.capacity() << '\n';
-    // std::cout << "v11 size: " << v11.size() << '\n';
+    std::cout << "v11 capacity: " << v11.capacity() << '\n';
+    std::cout << "v11 size: " << v11.size() << '\n';
 
-    // for (size_t i=0; i<v11.size(); i++) {
-    //     std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
-    // }
+    for (size_t i=0; i<v11.size(); i++) {
+        std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+    }
 
     sz = 524286;
 
@@ -606,18 +624,266 @@ void TestVirtualVectorAllocator() {
     std::cout << "v5 capacity: " << v5.capacity() << '\n';
     std::cout << "v5 size: " << v5.size() << '\n';
 
+    // FIXME: uncomment this after operator= is fixed
+
+    std::cout << "-------------------------------- TESTING V4 = V3 ---------------------------------" << '\n';
+
+    std::cout << "v4 capacity: " << v4.capacity() << '\n';
+    std::cout << "v4 size: " << v4.size() << '\n';
+
+    std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    std::cout << "v3 size: " << v3.size() << '\n';
+
+    v4 = v3;
+
+    std::cout << "v4 capacity: " << v4.capacity() << '\n';
+    std::cout << "v4 size: " << v4.size() << '\n';
+
+    for (size_t i=v4.size() -10; i<v4.size(); i++) {
+        std::cout << "v4[" <<i<<"] = "  << v4[i] << '\n';
+        std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    }
+
     std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
-
-    // // FIXME: uncomment this after operator= is fixed
-    // v4 = v3;
-
-    // std::cout << "v4 capacity: " << v4.capacity() << '\n';
-    // std::cout << "v4 size: " << v4.size() << '\n';
-
-    // for (size_t i=sz-2; i<v4.size(); i++) {
-    //     if (v4[i] != 1) std::cout << "v4[" <<i<<"] = "  << v4[i] << '\n';
-    // }
 
 }
 
 DECLARE_UNITTEST(TestVirtualVectorAllocator);
+
+void PerformanceTestVirtualVectorAllocator() {
+    
+    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+    dev_vec v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "vm allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestVirtualVectorAllocator);
+
+void PerformanceTestVectorAllocator() {
+    
+    thrust::device_vector<int> v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "device vector allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestVectorAllocator);
+
+void PerformanceTestUniversalVectorAllocator() {
+    
+    thrust::device_vector<int, thrust::universal_allocator<int>> v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "universal vector allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestUniversalVectorAllocator);
+
+void PerformanceTestVirtualVectorAllocatorWithReserve() {
+    
+    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+    dev_vec v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    v.reserve(end_size/sizeof(int));
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "vm allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestVirtualVectorAllocatorWithReserve);
+
+void PerformanceTestVectorAllocatorWithReserve() {
+    
+    thrust::device_vector<int> v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    v.reserve(end_size/sizeof(int));
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "device vector allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestVectorAllocatorWithReserve);
+
+void PerformanceTestUniversalVectorAllocatorWithReserve() {
+    
+    thrust::device_vector<int, thrust::universal_allocator<int>> v;
+    
+    cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+    size_t size = 1<<21;
+    size_t end_size = 1<<30;
+
+    float time_vm[12];
+    size_t index = 0;
+
+    v.reserve(end_size/sizeof(int));
+
+    for (size_t n = size/sizeof(int); n <= end_size/sizeof(int); n *=2)
+    {
+        std::cout << " n is : " << n << '\n';
+        cudaEventRecord(start);
+
+        v.resize(n);
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        time_vm[index++] = milliseconds;
+    }
+
+    std::cout << "universal vector allocator" << '\n';
+
+    for (size_t i=0; i < index; i++)
+    //printf("%.5f\n",time_vm[i]);
+    std::cout << time_vm[i] << '\n';
+}
+
+// DECLARE_UNITTEST(PerformanceTestUniversalVectorAllocatorWithReserve);
