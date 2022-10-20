@@ -286,117 +286,159 @@ void TestVirtualVectorAllocator() {
 
     size_t sz = 10;
 
-    std::cout << "-------------------------------- CREATING V11 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- CREATING V11 ---------------------------------" << '\n';
 
     dev_vec v11(sz,15);
 
-    std::cout << "v11 capacity: " << v11.capacity() << '\n';
-    std::cout << "v11 size: " << v11.size() << '\n';
+    // std::cout << "v11 capacity: " << v11.capacity() << '\n';
+    // std::cout << "v11 size: " << v11.size() << '\n';
 
     for (size_t i=0; i<v11.size(); i++) {
-        std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+        // std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
         ASSERT_EQUAL(v11[i], 15);
     }
 
-    std::cout << "v11 pointer: " << v11.data() << '\n';
+    // std::cout << "v11 pointer: " << v11.data() << '\n';
 
+    size_t page_size = 1 << 21;
+
+    ASSERT_EQUAL(v11.capacity(), page_size/sizeof(int));
     ASSERT_EQUAL(v11.size(), sz);
 
-    std::cout << "-------------------------------- CREATING V1 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- CREATING V1 ---------------------------------" << '\n';
 
     dev_vec v1(sz,68);
 
-    std::cout << "v1 capacity: " << v1.capacity() << '\n';
-    std::cout << "v1 size: " << v1.size() << '\n';
+    // std::cout << "v1 capacity: " << v1.capacity() << '\n';
+    // std::cout << "v1 size: " << v1.size() << '\n';
 
     for (size_t i=0; i<v1.size(); i++) {
-        std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
         ASSERT_EQUAL(v1[i], 68);
     }
 
-    std::cout << "v1 pointer: " << v1.data() << '\n';
-    
+    // std::cout << "v1 pointer: " << v1.data() << '\n';
+
+    ASSERT_EQUAL(v1.capacity(), page_size/sizeof(int));
     ASSERT_EQUAL(v1.size(), sz);
 
-    std::cout << "-------------------------------- CREATING V1 = V11 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- CREATING V1 = V11 ---------------------------------" << '\n';
     // FIXME: uncomment this after operator= is fixed
     v1 = v11;
 
-    std::cout << "v1 capacity: " << v1.capacity() << '\n';
-    std::cout << "v1 size: " << v1.size() << '\n';
+    // std::cout << "v1 capacity: " << v1.capacity() << '\n';
+    // std::cout << "v1 size: " << v1.size() << '\n';
 
-    for (size_t i=0; i<v1.size(); i++) {
-        std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+    for (size_t i=0; i<v11.size(); i++) {
+        ASSERT_EQUAL(v1[i], v11[i]);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
 
-    std::cout << "v1 pointer: " << v1.data() << '\n';
-    std::cout << "v11 pointer: " << v11.data() << '\n';
+    ASSERT_EQUAL(v1.size(), v11.size());
 
-    std::cout << "-------------------------------- ASSIGNING VALUES TO V11[2,5,8] ---------------------------------" << '\n';
+    // std::cout << "v1 pointer: " << v1.data() << '\n';
+    // std::cout << "v11 pointer: " << v11.data() << '\n';
+
+    // std::cout << "-------------------------------- ASSIGNING VALUES TO V11[2,5,8] ---------------------------------" << '\n';
 
     v11[2] = 100;
     v11[5] = 200;
     v11[8] = 300;
 
-    std::cout << "v11 capacity: " << v11.capacity() << '\n';
-    std::cout << "v11 size: " << v11.size() << '\n';
+    ASSERT_EQUAL(v11[2], 100);
+    ASSERT_EQUAL(v11[5], 200);
+    ASSERT_EQUAL(v11[8], 300);
 
-    for (size_t i=0; i<v11.size(); i++) {
-        std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+    ASSERT_EQUAL(v11.capacity(), page_size/sizeof(int));
+    ASSERT_EQUAL(v11.size(), sz);
+
+    // std::cout << "v11 capacity: " << v11.capacity() << '\n';
+    // std::cout << "v11 size: " << v11.size() << '\n';
+
+    // for (size_t i=0; i<v11.size(); i++) {
+    //     std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- PUSHING BACK V1 ---------------------------------" << '\n';
+
+    v1.push_back(20);
+    v1.push_back(21);
+    v1.push_back(20);
+    v1.push_back(21);
+    v1.push_back(20);
+    v1.push_back(21);
+
+    ASSERT_EQUAL(v1.capacity(), page_size/sizeof(int));
+    ASSERT_EQUAL(v1.size(), sz+6);
+
+    // std::cout << "v1 capacity: " << v1.capacity() << '\n';
+    // std::cout << "v1 size: " << v1.size() << '\n';
+
+    for (size_t i=sz; i<v1.size(); i+=2) {
+        ASSERT_EQUAL(v1[i], 20);
+        ASSERT_EQUAL(v1[i+1], 21);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
 
-    std::cout << "-------------------------------- PUSHING BACK V1 ---------------------------------" << '\n';
-
-    v1.push_back(20);
-    v1.push_back(21);
-    v1.push_back(20);
-    v1.push_back(21);
-    v1.push_back(20);
-    v1.push_back(21);
-
-    std::cout << "v1 capacity: " << v1.capacity() << '\n';
-    std::cout << "v1 size: " << v1.size() << '\n';
-
-    for (size_t i=0; i<v1.size(); i++) {
-        std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
-    }
-
-    std::cout << "-------------------------------- CREATING V11 = V1 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- CREATING V11 = V1 ---------------------------------" << '\n';
     // FIXME: uncomment this after operator= is fixed
     v11 = v1;
 
-    std::cout << "v11 capacity: " << v11.capacity() << '\n';
-    std::cout << "v11 size: " << v11.size() << '\n';
-
-    for (size_t i=0; i<v11.size(); i++) {
-        std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+    for (size_t i=0; i<v1.size(); i++) {
+        ASSERT_EQUAL(v1[i], v11[i]);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
+
+    ASSERT_EQUAL(v1.size(), v11.size());
+
+    // std::cout << "v11 capacity: " << v11.capacity() << '\n';
+    // std::cout << "v11 size: " << v11.size() << '\n';
+
+    // for (size_t i=0; i<v11.size(); i++) {
+    //     std::cout << "v11[" <<i<<"] = "  << v11[i] << '\n';
+    // }
 
     sz = 524286;
 
-    std::cout << "-------------------------------- CREATING V3 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- CREATING V3 ---------------------------------" << '\n';
 
     dev_vec v3(sz,1);
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
-
     for (size_t i=0; i<v3.size(); i++) {
-        if (v3[i] != 1) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+        ASSERT_EQUAL(v3[i], 1);
     }
 
-    std::cout << "-------------------------------- CREATING V4 ---------------------------------" << '\n';
+    ASSERT_EQUAL(v3.capacity(), page_size/sizeof(int));
+    ASSERT_EQUAL(v3.size(), sz);
+
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
+
+    // for (size_t i=0; i<v3.size(); i++) {
+    //     if (v3[i] != 1) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- CREATING V4 ---------------------------------" << '\n';
 
     dev_vec v4(sz,2);
 
-    std::cout << "v4 capacity: " << v4.capacity() << '\n';
-    std::cout << "v4 size: " << v4.size() << '\n';
-
     for (size_t i=0; i<v4.size(); i++) {
-        if (v4[i] != 2) std::cout << "error element: v4[" <<i<<"] = "  << v4[i] << '\n';
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+        ASSERT_EQUAL(v4[i], 2);
     }
+
+    ASSERT_EQUAL(v4.capacity(), page_size/sizeof(int));
+    ASSERT_EQUAL(v4.size(), sz);
+
+    // std::cout << "v4 capacity: " << v4.capacity() << '\n';
+    // std::cout << "v4 size: " << v4.size() << '\n';
+
+    // for (size_t i=0; i<v4.size(); i++) {
+    //     if (v4[i] != 2) std::cout << "error element: v4[" <<i<<"] = "  << v4[i] << '\n';
+    // }
     
-    std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
 
     v3.push_back(20);
     v3.push_back(21);
@@ -405,82 +447,133 @@ void TestVirtualVectorAllocator() {
     v3.push_back(20);
     v3.push_back(21);
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
+    ASSERT_EQUAL(v3.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v3.size(), sz+6);
 
-    for (size_t i=sz-2; i<v3.size(); i++) {
-        std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    for (size_t i=sz; i<v3.size(); i+=2) {
+        ASSERT_EQUAL(v3[i], 20);
+        ASSERT_EQUAL(v3[i+1], 21);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
+
+
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
+
+    // for (size_t i=sz-2; i<v3.size(); i++) {
+    //     std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
 
     size_t rem = v3.capacity() - v3.size();
 
-    std::cout << "-------------------------- PUSHING BACK V3 WITH " << rem << " ELEMENTS ---------------------------------" << '\n';
+    // std::cout << "-------------------------- PUSHING BACK V3 WITH " << rem << " ELEMENTS ---------------------------------" << '\n';
 
     for (size_t i=0; i<rem; i++) {
         v3.push_back(20);
     }
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
+    ASSERT_EQUAL(v3.capacity(), v3.size());
 
-    for (size_t i=v3.capacity()-15; i<v3.size(); i++) {
-        if (v3[i] != 20) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
+    for (size_t i=v3.size() - rem; i<v3.size(); i++) {
+        ASSERT_EQUAL(v3[i], 20);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
 
-    std::cout << "-------------------------------- CREATING V5 ---------------------------------" << '\n';
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
+
+    // for (size_t i=v3.capacity()-15; i<v3.size(); i++) {
+    //     if (v3[i] != 20) std::cout << "error element: v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- CREATING V5 ---------------------------------" << '\n';
 
     dev_vec v5(sz,2);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
-
     for (size_t i=0; i<v5.size(); i++) {
-        if (v5[i] != 2) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
+        ASSERT_EQUAL(v5[i], 2);
     }
 
-    std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
+    ASSERT_EQUAL(v5.capacity(), page_size/sizeof(int));
+    ASSERT_EQUAL(v5.size(), sz);
 
-    v3.push_back(200);
-    v3.push_back(201);
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    // for (size_t i=0; i<v5.size(); i++) {
+    //     if (v5[i] != 2) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
+
+    size_t old_size = v3.size();
+
     v3.push_back(200);
     v3.push_back(210);
     v3.push_back(200);
     v3.push_back(210);
+    v3.push_back(200);
+    v3.push_back(210);
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
+    ASSERT_EQUAL(v3.capacity(), 4*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v3.size(), old_size+6);
 
-    for (size_t i=v3.size()-10; i<v3.size(); i++) {
-        std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    for (size_t i=old_size; i<v3.size(); i+=2) {
+        ASSERT_EQUAL(v3[i], 200);
+        ASSERT_EQUAL(v3[i+1], 210);
+        // std::cout << "v1[" <<i<<"] = "  << v1[i] << '\n';
     }
 
-    std::cout << "-------------------------------- POPPING BACK V3 ---------------------------------" << '\n';
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
+
+    // for (size_t i=v3.size()-10; i<v3.size(); i++) {
+    //     std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- POPPING BACK V3 ---------------------------------" << '\n';
+
+    old_size = v3.size();
 
     v3.pop_back();
     v3.pop_back();
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
+    ASSERT_EQUAL(v3.capacity(), 4*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v3.size(), old_size-2);
 
-    for (size_t i=v3.size()-10; i<v3.size(); i++) {
-        std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
-    }
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
 
-    std::cout << "-------------------------------- POPPING BACK V5 ---------------------------------" << '\n';
+    // for (size_t i=v3.size()-10; i<v3.size(); i++) {
+    //     std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- POPPING BACK V5 ---------------------------------" << '\n';
+
+    old_size = v5.size();
 
     v5.pop_back();
     v5.pop_back();
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), (page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size-2);
 
-    std::cout << "----------------------- TESTING RESERVE -------------------------------" << '\n';
-    std::cout << "----------------------- RESERVING CAPACITY+1 FOR V5 -------------------------------" << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    // std::cout << "----------------------- TESTING RESERVE -------------------------------" << '\n';
+    // std::cout << "----------------------- RESERVING CAPACITY+1 FOR V5 -------------------------------" << '\n';
+
+    old_size = v5.size();
 
     v5.reserve(v5.capacity() + 1);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size);
+
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
     std::cout << "----------------------- TESTING COPY_INSERT -------------------------------" << '\n';
     std::cout << "--------- COPYING LAST 5 ELEMENTS TO POSITION 5TH FROM LAST ON V5 ---------" << '\n';

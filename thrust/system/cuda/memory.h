@@ -84,7 +84,7 @@ using universal_allocator = thrust::mr::stateless_resource_allocator<
 
 template<typename T>
 using virtual_allocator = thrust::mr::virtual_memory_resource_allocator<
- T, thrust::system::cuda::virtual_memory_resource
+ T, thrust::system::cuda::memory_resource
 >;
 
 } // namespace cuda_cub

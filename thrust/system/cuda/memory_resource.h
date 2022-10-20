@@ -29,8 +29,6 @@
 #include <thrust/system/cuda/error.h>
 #include <thrust/system/cuda/detail/util.h>
 
-#include <thrust/system/cuda/virtual_memory_allocator.h>
-
 #include <thrust/mr/host_memory_resource.h>
 
 THRUST_NAMESPACE_BEGIN
@@ -43,11 +41,8 @@ namespace cuda
 //! \cond
 namespace detail
 {
-
-    typedef cudaError_t (*allocation_fn)(void **, std::size_t);
-    typedef cudaError_t (*deallocation_fn)(void *);
-
-    typedef cudaError_t (*deallocation_fn_v2)(void *, std::size_t);
+    typedef cudaError_t (CUDARTAPI *allocation_fn)(void **, std::size_t);
+    typedef cudaError_t (CUDARTAPI *deallocation_fn)(void *);
 
     template<allocation_fn Alloc, deallocation_fn Dealloc, typename Pointer>
     class cuda_memory_resource final : public mr::memory_resource<Pointer>
@@ -59,8 +54,6 @@ namespace detail
 
             void * ret;
             cudaError_t status = Alloc(&ret, bytes);
-
-            //printf("hello from allocate!\n");
 
             if (status != cudaSuccess)
             {
@@ -78,76 +71,16 @@ namespace detail
 
             cudaError_t status = Dealloc(thrust::detail::pointer_traits<Pointer>::get(p));
 
-            //printf("hello from deallocate!\n");
-
             if (status != cudaSuccess)
             {
                 thrust::cuda_cub::throw_on_error(status, "CUDA free failed");
             }
         }
     };
-
-    template<allocation_fn Alloc, deallocation_fn_v2 Dealloc, typename Pointer>
-    class vm_cuda_memory_resource final : public mr::memory_resource<Pointer>
-    {
-    public:
-        Pointer do_allocate(std::size_t bytes, std::size_t alignment = THRUST_MR_DEFAULT_ALIGNMENT) override
-        {
-            (void)alignment;
-
-            void * ret;
-            cudaError_t status = Alloc(&ret, bytes);
-
-            //printf("hello from vm allocate!\n");
-
-            if (status != cudaSuccess)
-            {
-                cudaGetLastError(); // Clear the CUDA global error state.
-                throw thrust::system::detail::bad_alloc(thrust::cuda_category().message(status).c_str());
-            }
-            return Pointer(ret);
-        }
-
-        void do_deallocate(Pointer p, std::size_t bytes, std::size_t alignment) override
-        {
-            (void)bytes;
-            (void)alignment;
-
-            //printf("hello from vm deallocate!\n");
-
-            cudaError_t status = Dealloc(thrust::detail::pointer_traits<Pointer>::get(p), bytes);
-
-            if (status != cudaSuccess)
-            {
-                thrust::cuda_cub::throw_on_error(status, "vm CUDA free failed");
-            }
-        }
-    };
-
     
     inline cudaError_t cudaMallocManaged(void ** ptr, std::size_t bytes)
     {
-        //printf("hello from managed\n");
         return ::cudaMallocManaged(ptr, bytes, cudaMemAttachGlobal);
-    }
-
-    // added here
-    inline cudaError_t virtualMemoryAllocator(void ** ptr, std::size_t bytes)
-    {
-        //thrust::system::detail::virtual_memory_allocator 
-        //printf("hello from virtual alloc\n");
-        thrust::system::cuda::detail::virtual_memory_allocator v;
-        //return thrust::system::detail::virtual_memory_allocator(ptr, bytes);
-        return v.allocate(ptr, bytes);
-    }
-
-    inline cudaError_t virtualMemoryDeallocator(void * ptr, std::size_t bytes)
-    {
-        //thrust::system::detail::virtual_memory_allocator 
-        printf("hello from virtual dealloc\n");
-        thrust::system::cuda::detail::virtual_memory_allocator v;
-        //return thrust::system::detail::virtual_memory_allocator(ptr, bytes);
-        return v.deallocate(ptr, bytes);
     }
 
     typedef detail::cuda_memory_resource<cudaMalloc, cudaFree,
@@ -159,11 +92,6 @@ namespace detail
     typedef detail::cuda_memory_resource<cudaMallocHost, cudaFreeHost,
         thrust::cuda::universal_pointer<void> >
         pinned_memory_resource;
-    // added here
-    // look into using virtual pointer
-    typedef detail::vm_cuda_memory_resource<detail::virtualMemoryAllocator, detail::virtualMemoryDeallocator,
-        thrust::cuda::pointer<void> >
-        virtual_memory_resource;
 
 } // end detail
 //! \endcond
@@ -183,9 +111,6 @@ typedef detail::managed_memory_resource universal_memory_resource;
  */
 typedef detail::pinned_memory_resource universal_host_pinned_memory_resource;
 
-// added here
-typedef detail::virtual_memory_resource virtual_memory_resource;
-
 } // end cuda
 } // end system
 
@@ -194,8 +119,6 @@ namespace cuda
 using thrust::system::cuda::memory_resource;
 using thrust::system::cuda::universal_memory_resource;
 using thrust::system::cuda::universal_host_pinned_memory_resource;
-// added here
-using thrust::system::cuda::virtual_memory_resource;
 }
 
 THRUST_NAMESPACE_END

@@ -26,6 +26,8 @@
 #include <thrust/detail/config/exec_check_disable.h>
 #include <thrust/detail/config/memory_resource.h>
 #include <thrust/detail/type_traits/pointer_traits.h>
+#include <cuda_runtime.h>
+#include <cuda.h>
 
 #include <thrust/mr/validator.h>
 #include <thrust/mr/polymorphic_adaptor.h>

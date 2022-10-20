@@ -32,8 +32,6 @@ typedef thrust::system::__THRUST_DEVICE_SYSTEM_NAMESPACE::universal_memory_resou
     universal_memory_resource;
 typedef thrust::system::__THRUST_DEVICE_SYSTEM_NAMESPACE::universal_host_pinned_memory_resource
     universal_host_pinned_memory_resource;
-typedef thrust::system::__THRUST_DEVICE_SYSTEM_NAMESPACE::virtual_memory_resource
-    virtual_memory_resource;
 
 THRUST_NAMESPACE_END
 
