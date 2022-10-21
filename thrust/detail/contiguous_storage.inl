@@ -27,13 +27,13 @@
 
 #include <nv/target>
 
-#include<thrust/system/cuda/memory.h>
+// #include <thrust/system/cuda/memory.h>
 
 #include <stdexcept> // for std::runtime_error
 #include <utility> // for use of std::swap in the WAR below
 
 THRUST_NAMESPACE_BEGIN
-
+class virutal_allocator;
 namespace detail
 {
 
@@ -209,11 +209,14 @@ __host__ __device__
 {
   if(n > 0)
   {
-    if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
+    //if constexpr (std::is_same<Alloc,thrust::virtual_allocator<T>>::value)
+    if constexpr (std::is_same<Alloc,thrust::universal_allocator<T>>::value)
+    // if constexpr (std::is_same<Alloc, thrust::cuda_cub::virtual_allocator<T>>::value)
     {
       pointer ptr = alloc_traits::allocate(m_allocator,n);
       m_begin = iterator(ptr);
-      m_size = m_allocator.count;
+      std::cout<< "hello!\n";
+      //m_size = m_allocator.count;
     }
     else
     {

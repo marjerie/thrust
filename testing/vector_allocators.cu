@@ -3,6 +3,7 @@
 #include <thrust/detail/config.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <thrust/virtual_allocator.h>
 
 template<typename BaseAlloc, bool PropagateOnSwap>
 class stateful_allocator : public BaseAlloc
@@ -743,9 +744,28 @@ void TestVirtualVectorAllocator() {
 
 DECLARE_UNITTEST(TestVirtualVectorAllocator);
 
+typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+// template<thrust::system::cuda::virtual_allocator<int>>
+//   class contiguous_storage_base
+//   {
+//     private:
+//       typedef thrust::detail::allocator_traits<thrust::system::cuda::virtual_allocator<int>> alloc_traits;
+
+//     public:
+
+//     typedef typename alloc_traits::size_type           size_type;
+
+//     __host__ __device__
+//     void allocate(size_type n) 
+//     {
+//         std::cout << "hello blah!!!!\n";
+//     }
+//   };
+
 void PerformanceTestVirtualVectorAllocator() {
     
-    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+    // typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
 
     dev_vec v;
     
@@ -979,4 +999,4 @@ void PerformanceTestUniversalVectorAllocatorWithReserve() {
     std::cout << time_vm[i] << '\n';
 }
 
-// DECLARE_UNITTEST(PerformanceTestUniversalVectorAllocatorWithReserve);
+DECLARE_UNITTEST(PerformanceTestUniversalVectorAllocatorWithReserve);

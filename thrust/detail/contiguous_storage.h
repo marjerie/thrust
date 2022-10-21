@@ -28,9 +28,23 @@ namespace detail
 
 struct copy_allocator_t {};
 
+template<typename Alloc>
+  class contiguous_storage_base
+  {
+    private:
+      typedef thrust::detail::allocator_traits<Alloc> alloc_traits;
+
+    public:
+
+    typedef typename alloc_traits::size_type           size_type;
+
+    __host__ __device__
+    void allocate(size_type n) {}
+  };
+
 // XXX parameter T is redundant with parameter Alloc
 template<typename T, typename Alloc>
-  class contiguous_storage
+  class contiguous_storage : public contiguous_storage_base<Alloc>
 {
   private:
     typedef thrust::detail::allocator_traits<Alloc> alloc_traits;
