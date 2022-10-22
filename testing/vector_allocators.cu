@@ -3,6 +3,7 @@
 #include <thrust/detail/config.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
+#include <thrust/virtual_allocator.h>
 
 template<typename BaseAlloc, bool PropagateOnSwap>
 class stateful_allocator : public BaseAlloc
@@ -281,8 +282,9 @@ void TestVectorAllocatorPropagateOnSwapDevice()
 DECLARE_UNITTEST(TestVectorAllocatorPropagateOnSwapDevice);
 
 void TestVirtualVectorAllocator() {
-    
-    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+    typedef thrust::device_vector<int,thrust::virtual_allocator<int>> dev_vec;
+    // typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
 
     size_t sz = 10;
 
@@ -437,7 +439,7 @@ void TestVirtualVectorAllocator() {
     // for (size_t i=0; i<v4.size(); i++) {
     //     if (v4[i] != 2) std::cout << "error element: v4[" <<i<<"] = "  << v4[i] << '\n';
     // }
-    
+
     // std::cout << "-------------------------------- PUSHING BACK V3 ---------------------------------" << '\n';
 
     v3.push_back(20);
@@ -575,180 +577,253 @@ void TestVirtualVectorAllocator() {
     // std::cout << "v5 capacity: " << v5.capacity() << '\n';
     // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- TESTING COPY_INSERT -------------------------------" << '\n';
-    std::cout << "--------- COPYING LAST 5 ELEMENTS TO POSITION 5TH FROM LAST ON V5 ---------" << '\n';
+    // std::cout << "----------------------- TESTING COPY_INSERT -------------------------------" << '\n';
+    // std::cout << "--------- COPYING LAST 5 ELEMENTS TO POSITION 5TH FROM LAST ON V5 ---------" << '\n';
+
+    old_size = v5.size();
 
     for (size_t i=v5.size()-5; i<v5.size(); i++) {
         v5[i] = v5.size() - i;
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+        // std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
     v5.insert(v5.end() - 5, v5.end() - 5, v5.end());
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size + 5);
 
-    for (size_t i=v5.size()-15; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- TESTING INSERT -------------------------------" << '\n';
-    std::cout << "--------- INSERTING 0 TO SECOND TO LAST POSITION ON V5 ---------" << '\n';
+    // for (size_t i=v5.size()-15; i<v5.size(); i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    // std::cout << "----------------------- TESTING INSERT -------------------------------" << '\n';
+    // std::cout << "--------- INSERTING 0 TO SECOND TO LAST POSITION ON V5 ---------" << '\n';
+
+    old_size = v5.size();
+    // size_t old_end = v5.end();
 
     v5.insert(v5.end() - 1, 0);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size + 1);
+    ASSERT_EQUAL(v5[old_size - 1], 0);
 
-    for (size_t i=v5.size()-5; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "--------- INSERTING 5 0s TO FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+    // for (size_t i=v5.size()-5; i<v5.size(); i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    // std::cout << "--------- INSERTING 5 0s TO FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+
+    old_size = v5.size();
+    // old_end = v5.end();
 
     v5.insert(v5.end() - 4, 5, 0);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size + 5);
 
-    for (size_t i=v5.size()-10; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- TESTING ERASE -----------------------------" << '\n';
-    std::cout << "--------- ERASING 5 0s FROM FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+    // for (size_t i=v5.size()-10; i<v5.size(); i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    ASSERT_EQUAL(v5[old_size - 4], 0);
+    ASSERT_EQUAL(v5[old_size - 3], 0);
+    ASSERT_EQUAL(v5[old_size - 2], 0);
+    ASSERT_EQUAL(v5[old_size - 1], 0);
+    ASSERT_EQUAL(v5[old_size], 0);
+
+    // std::cout << "----------------------- TESTING ERASE -----------------------------" << '\n';
+    // std::cout << "--------- ERASING 5 0s FROM FOURTH TO LAST POSITION ON V5 ---------" << '\n';
+
+    old_size = v5.size();
 
     v5.erase(v5.end() - 9, v5.end() - 4);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    for (size_t i=v5.size()-10; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size - 5);
 
-    std::cout << "--------- ERASING 0 FROM SECOND TO LAST POSITION ON V5 ---------" << '\n';
+    // for (size_t i=v5.size()-10; i<v5.size(); i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    // std::cout << "--------- ERASING 0 FROM SECOND TO LAST POSITION ON V5 ---------" << '\n';
+
+    old_size = v5.size();
 
     v5.erase(v5.end() - 2);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 2*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size - 1);
 
-    for (size_t i=v5.size()-5; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- TESTING FILL_ASSIGN -----------------------------" << '\n';
-    std::cout << "--------- ASSIGNING 7 TO MORE THAN CAPACITY ---------" << '\n';
+    // for (size_t i=v5.size()-5; i<v5.size(); i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "----------------------- TESTING FILL_ASSIGN -----------------------------" << '\n';
+    // std::cout << "--------- ASSIGNING 7 TO MORE THAN CAPACITY ---------" << '\n';
+
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    size_t old_capacity = v5.capacity();
 
     v5.assign(v5.capacity() + 1, 7);
 
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_capacity + 1);
+
     for (size_t i=0; i<v5.size(); i++) {
-        if (v5[i] != 7) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+        ASSERT_EQUAL(v5[i], 7);
+        // if (v5[i] != 7) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "--------- ASSIGNING 8 TO MORE THAN SIZE (+10) ---------" << '\n';
+    // std::cout << "--------- ASSIGNING 8 TO MORE THAN SIZE (+10) ---------" << '\n';
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    old_size = v5.size();
 
     v5.assign(v5.size() + 10, 8);
 
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size + 10);
+
     for (size_t i=0; i<v5.size(); i++) {
-        if (v5[i] != 8) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+        ASSERT_EQUAL(v5[i], 8);
+        // if (v5[i] != 8) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "--------- ASSIGNING 9 TO LESS THAN SIZE (-10) ---------" << '\n';
+    // std::cout << "--------- ASSIGNING 9 TO LESS THAN SIZE (-10) ---------" << '\n';
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    old_size = v5.size();
 
     v5.assign(v5.size() - 10, 9);
 
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_size - 10);
+
     for (size_t i=0; i<v5.size(); i++) {
-        if (v5[i] != 9) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
+        ASSERT_EQUAL(v5[i], 9);
+        // if (v5[i] != 9) std::cout << "error element: v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- TESTING CLEAR ON V5 -----------------------------" << '\n';
+    // std::cout << "----------------------- TESTING CLEAR ON V5 -----------------------------" << '\n';
 
     v5.clear();
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), 0u);
 
-    std::cout << "----------------------- TESTING RESIZE ON V5 -----------------------------" << '\n';
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
+
+    // std::cout << "----------------------- TESTING RESIZE ON V5 -----------------------------" << '\n';
 
     v5.resize(10, 10);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), 10u);
+
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
     for (size_t i=0; i<v5.size(); i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+        ASSERT_EQUAL(v5[i], 10);
+        // std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
     }
 
-    std::cout << "----------------------- RESIZING TO CAPACITY -----------------------------" << '\n';
+    // std::cout << "----------------------- RESIZING TO CAPACITY -----------------------------" << '\n';
 
     v5.resize(v5.capacity());
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 3*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), v5.capacity());
 
-    for (size_t i=0; i<12; i++) {
-        std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
-    }  
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
-    std::cout << "----------------------- RESIZING TO CAPACITY + 1 -----------------------------" << '\n';
+    // for (size_t i=0; i<12; i++) {
+    //     std::cout << "v5[" <<i<<"] = "  << v5[i] << '\n';
+    // }
+
+    // std::cout << "----------------------- RESIZING TO CAPACITY + 1 -----------------------------" << '\n';
+
+    old_capacity = v5.capacity();
 
     v5.resize(v5.capacity() + 1);
 
-    std::cout << "v5 capacity: " << v5.capacity() << '\n';
-    std::cout << "v5 size: " << v5.size() << '\n';
+    ASSERT_EQUAL(v5.capacity(), 6*(page_size/sizeof(int)));
+    ASSERT_EQUAL(v5.size(), old_capacity + 1);
+
+    // std::cout << "v5 capacity: " << v5.capacity() << '\n';
+    // std::cout << "v5 size: " << v5.size() << '\n';
 
     // FIXME: uncomment this after operator= is fixed
 
-    std::cout << "-------------------------------- TESTING V4 = V3 ---------------------------------" << '\n';
+    // std::cout << "-------------------------------- TESTING V4 = V3 ---------------------------------" << '\n';
 
-    std::cout << "v4 capacity: " << v4.capacity() << '\n';
-    std::cout << "v4 size: " << v4.size() << '\n';
+    // std::cout << "v4 capacity: " << v4.capacity() << '\n';
+    // std::cout << "v4 size: " << v4.size() << '\n';
 
-    std::cout << "v3 capacity: " << v3.capacity() << '\n';
-    std::cout << "v3 size: " << v3.size() << '\n';
+    // std::cout << "v3 capacity: " << v3.capacity() << '\n';
+    // std::cout << "v3 size: " << v3.size() << '\n';
 
     v4 = v3;
+    
+    ASSERT_EQUAL(v4.size(), v3.size());
 
-    std::cout << "v4 capacity: " << v4.capacity() << '\n';
-    std::cout << "v4 size: " << v4.size() << '\n';
-
-    for (size_t i=v4.size() -10; i<v4.size(); i++) {
-        std::cout << "v4[" <<i<<"] = "  << v4[i] << '\n';
-        std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    for (size_t i=0; i<v3.size(); i++) {
+        ASSERT_EQUAL(v4[i], v3[i]);
     }
 
-    std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
+    // std::cout << "v4 capacity: " << v4.capacity() << '\n';
+    // std::cout << "v4 size: " << v4.size() << '\n';
+
+    // for (size_t i=v4.size() -10; i<v4.size(); i++) {
+    //     std::cout << "v4[" <<i<<"] = "  << v4[i] << '\n';
+    //     std::cout << "v3[" <<i<<"] = "  << v3[i] << '\n';
+    // }
+
+    // std::cout << "-------------------------------- DEALLOCATING ---------------------------------" << '\n';
 
 }
 
 DECLARE_UNITTEST(TestVirtualVectorAllocator);
 
 void PerformanceTestVirtualVectorAllocator() {
-    
-    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+    typedef thrust::device_vector<int,thrust::virtual_allocator<int>> dev_vec;
 
     dev_vec v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -784,9 +859,9 @@ void PerformanceTestVirtualVectorAllocator() {
 // DECLARE_UNITTEST(PerformanceTestVirtualVectorAllocator);
 
 void PerformanceTestVectorAllocator() {
-    
+
     thrust::device_vector<int> v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -822,9 +897,9 @@ void PerformanceTestVectorAllocator() {
 // DECLARE_UNITTEST(PerformanceTestVectorAllocator);
 
 void PerformanceTestUniversalVectorAllocator() {
-    
+
     thrust::device_vector<int, thrust::universal_allocator<int>> v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -860,11 +935,11 @@ void PerformanceTestUniversalVectorAllocator() {
 // DECLARE_UNITTEST(PerformanceTestUniversalVectorAllocator);
 
 void PerformanceTestVirtualVectorAllocatorWithReserve() {
-    
-    typedef thrust::device_vector<int,thrust::system::cuda::virtual_allocator<int>> dev_vec;
+
+    typedef thrust::device_vector<int,thrust::virtual_allocator<int>> dev_vec;
 
     dev_vec v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -902,9 +977,9 @@ void PerformanceTestVirtualVectorAllocatorWithReserve() {
 // DECLARE_UNITTEST(PerformanceTestVirtualVectorAllocatorWithReserve);
 
 void PerformanceTestVectorAllocatorWithReserve() {
-    
+
     thrust::device_vector<int> v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -942,9 +1017,9 @@ void PerformanceTestVectorAllocatorWithReserve() {
 // DECLARE_UNITTEST(PerformanceTestVectorAllocatorWithReserve);
 
 void PerformanceTestUniversalVectorAllocatorWithReserve() {
-    
+
     thrust::device_vector<int, thrust::universal_allocator<int>> v;
-    
+
     cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);

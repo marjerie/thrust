@@ -27,7 +27,8 @@
 
 #include <nv/target>
 
-#include<thrust/system/cuda/memory.h>
+// #include<thrust/system/cuda/memory.h>
+#include <thrust/virtual_allocator.h>
 
 #include <stdexcept> // for std::runtime_error
 #include <utility> // for use of std::swap in the WAR below
@@ -209,7 +210,8 @@ __host__ __device__
 {
   if(n > 0)
   {
-    if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
+    if constexpr (std::is_same<Alloc,virtual_allocator<T>>::value)
+    // if constexpr (std::is_same<Alloc,system::cuda::virtual_allocator<T>>::value)
     {
       pointer ptr = alloc_traits::allocate(m_allocator,n);
       m_begin = iterator(ptr);
