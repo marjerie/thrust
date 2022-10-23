@@ -21,6 +21,8 @@
 #include <thrust/detail/allocator/allocator_traits.h>
 #include <thrust/detail/config.h>
 
+// #include <thrust/virtual_allocator.h>
+
 THRUST_NAMESPACE_BEGIN
 
 namespace detail
@@ -28,23 +30,39 @@ namespace detail
 
 struct copy_allocator_t {};
 
-template<typename Alloc>
-  class contiguous_storage_base
-  {
-    private:
-      typedef thrust::detail::allocator_traits<Alloc> alloc_traits;
+// template<typename T, typename Alloc>
+// class contiguous_storage_base
+// {
+//   private:
+//     typedef thrust::detail::allocator_traits<Alloc> alloc_traits;
 
-    public:
+//   public:
 
-    typedef typename alloc_traits::size_type           size_type;
+//   typedef typename alloc_traits::size_type           size_type;
 
-    __host__ __device__
-    void allocate(size_type n) {}
-  };
+//   __host__ __device__
+//   void allocate(size_type n) {}
+// };
+
+// template<typename T>
+// class contiguous_storage_base<T, thrust::virtual_allocator<T>>
+// {
+//   private:
+//     typedef thrust::detail::allocator_traits<thrust::virtual_allocator<T>> alloc_traits;
+
+//   public:
+
+//   typedef typename alloc_traits::size_type           size_type;
+
+//   __host__ __device__
+//   void allocate(size_type n) {
+//     printf("allocate for vm allocator!\n");
+//   }
+// };
 
 // XXX parameter T is redundant with parameter Alloc
 template<typename T, typename Alloc>
-  class contiguous_storage : public contiguous_storage_base<Alloc>
+  class contiguous_storage //: public contiguous_storage_base<T, Alloc>
 {
   private:
     typedef thrust::detail::allocator_traits<Alloc> alloc_traits;

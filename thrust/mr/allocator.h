@@ -153,7 +153,7 @@ public:
         return mem_res;
     }
 
-//private:
+private:
     MR * mem_res;
 };
 
