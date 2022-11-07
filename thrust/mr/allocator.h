@@ -370,9 +370,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
         __host__
         typename allocator<T,Upstream>::pointer allocate(size_t n)
         // pointer allocate(size_t n)
-        {
-            // std::cout << "hello from allocator.h" << '\n';
-            
+        {            
             CUmemGenericAllocationHandle handle;
             size_t size_diff = n * sizeof(T);
             size_t sz = ((size_diff + chunk_sz - 1) / chunk_sz) * chunk_sz;
@@ -431,6 +429,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
 
             // std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
             // std::cout << "pointer is d_p: " << d_p << '\n';
+            std::cout << "vm allocated " << n << " elements" << '\n';
 
             return static_cast<typename allocator<T,Upstream>::pointer>(Pointer((void *)d_p));
             //return static_cast<pointer>(mem_res->do_allocate(n * sizeof(T), THRUST_ALIGNOF(T)));

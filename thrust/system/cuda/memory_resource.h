@@ -60,6 +60,8 @@ namespace detail
                 cudaGetLastError(); // Clear the CUDA global error state.
                 throw thrust::system::detail::bad_alloc(thrust::cuda_category().message(status).c_str());
             }
+            
+            printf("cudamalloc allocated %lu bytes\n", bytes);
 
             return Pointer(ret);
         }
