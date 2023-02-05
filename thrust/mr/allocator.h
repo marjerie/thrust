@@ -32,7 +32,7 @@
 #include <thrust/mr/validator.h>
 #include <thrust/mr/polymorphic_adaptor.h>
 
-#define vm_array_size 10
+// #define vm_array_size 10
 
 THRUST_NAMESPACE_BEGIN
 namespace mr
@@ -273,13 +273,13 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
 
         CUmemAllocationProp prop;
         CUmemAccessDesc accessDesc;
-        // std::vector<Range> va_ranges;
-        // std::vector<CUmemGenericAllocationHandle> handles;
-        // std::vector<size_t> handle_sizes;
+        std::vector<Range> va_ranges;
+        std::vector<CUmemGenericAllocationHandle> handles;
+        std::vector<size_t> handle_sizes;
 
-        Range va_ranges[vm_array_size];
-        CUmemGenericAllocationHandle handles[vm_array_size];
-        size_t handle_sizes[vm_array_size];
+        // Range va_ranges[vm_array_size];
+        // CUmemGenericAllocationHandle handles[vm_array_size];
+        // size_t handle_sizes[vm_array_size];
         // thrust::host_vector<Range> va_ranges;
         // thrust::host_vector<CUmemGenericAllocationHandle> handles;
         // thrust::host_vector<size_t> handle_sizes;
@@ -305,8 +305,11 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             d_p = 0ULL;
             count = 0;
             chunk_sz = 0;
-            index_va_ranges = 0;
-            index_handles = 0;
+            // index_va_ranges = 0;
+            // index_handles = 0;
+            va_ranges.clear();
+            handles.clear();
+            handle_sizes.clear();
             alloc_sz = 0;
             reserve_sz = 0;
             // CUresult status = cuInit(0);
@@ -325,6 +328,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             accessDesc.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
 
             cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
+            chunk_sz = chunk_sz * 2;
             // status = cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
             // std::cout << "chunk size: " << chunk_sz << '\n';
 
@@ -340,10 +344,15 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                 //chunk_sz = 0;
                 index_va_ranges = 0;
                 index_handles = 0;
+
+                va_ranges.clear();
+                handles.clear();
+                handle_sizes.clear();
+
                 //alloc_sz = 0;
                 //reserve_sz = 0;
                 //d_p = other.d_p;
-                //count = other.count;
+                count = other.count;
                 chunk_sz = other.chunk_sz;
                 //index_va_ranges = other.index_va_ranges;
                 //index_handles = other.index_handles;
@@ -400,7 +409,9 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                         // std::cout << "cuMemMap success " << status << '\n';
                         if ((status = cuMemSetAccess(d_p + alloc_sz, sz, &accessDesc_new, 1ULL)) == CUDA_SUCCESS) {
                             // std::cout << "cumemsetaccess success" << '\n';
-                            update_handles(handle, sz);
+                            // update_handles(handle, sz);
+                            handles.push_back(handle);
+                            handle_sizes.push_back(sz);
                             alloc_sz += sz;
                         }
                         if (status != CUDA_SUCCESS) {
@@ -429,7 +440,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
 
             // std::cout << "d_p is " << std::hex << d_p << std::dec << '\n';
             // std::cout << "pointer is d_p: " << d_p << '\n';
-            std::cout << "vm allocated " << n << " elements" << '\n';
+            // std::cout << "vm allocated " << n << " elements" << '\n';
 
             return static_cast<typename allocator<T,Upstream>::pointer>(Pointer((void *)d_p));
             //return static_cast<pointer>(mem_res->do_allocate(n * sizeof(T), THRUST_ALIGNOF(T)));
@@ -476,7 +487,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                     status = cuMemUnmap(d_p, alloc_sz);
                     // std::cout << "cuMemUnmap ===== " << status << '\n';
 
-                    for (size_t i = 0ULL; i < index_handles; i++) {
+                    for (size_t i = 0ULL; i < handles.size(); i++) {
                         const size_t hdl_sz = handle_sizes[i];
                         if ((status = cuMemMap(ptr, hdl_sz, 0ULL, handles[i], 0ULL)) != CUDA_SUCCESS)
                             break;
@@ -495,28 +506,31 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                         assert(status == CUDA_SUCCESS);
                     }
                     else {
-                        for (size_t i = 0ULL; i < index_va_ranges; i++) {
+                        for (size_t i = 0ULL; i < va_ranges.size(); i++) {
                             status = cuMemAddressFree(va_ranges[i].start, va_ranges[i].sz);
                             // std::cout << "cuMemAddressFree ===== " << status << '\n';
                         }
-                        index_va_ranges = 0;
+                        // index_va_ranges = 0;
+                        va_ranges.clear();
                     }
                 }
                 if (status == CUDA_SUCCESS) {
-                    // Range r;
+                    Range r;
                     d_p = new_ptr;
                     reserve_sz = aligned_sz;
-                    // r.start = new_ptr;
-                    // r.sz = aligned_sz;
-                    update_va_ranges(new_ptr, aligned_sz);
+                    r.start = new_ptr;
+                    r.sz = aligned_sz;
+                    va_ranges.push_back(r);
+                    // update_va_ranges(new_ptr, aligned_sz);
                 }
             }
             else
             {
-                // Range r;
-                // r.start = new_ptr;
-                // r.sz = aligned_sz - reserve_sz;
-                update_va_ranges(new_ptr, aligned_sz - reserve_sz);
+                Range r;
+                r.start = new_ptr;
+                r.sz = aligned_sz - reserve_sz;
+                va_ranges.push_back(r);
+                // update_va_ranges(new_ptr, aligned_sz - reserve_sz);
                 if (d_p == 0ULL) {
                     d_p = new_ptr;
                 }
@@ -572,16 +586,19 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
                 status = cuMemUnmap((CUdeviceptr) p.get(), n*sizeof(T));
                 // std::cout << "cuMemUnmap ===== " << status << '\n';
                 assert(status == CUDA_SUCCESS);
-                for (size_t i = 0ULL; i < index_va_ranges; i++) {
+                for (size_t i = 0ULL; i < va_ranges.size(); i++) {
                     status = cuMemAddressFree(va_ranges[i].start, va_ranges[i].sz);
                     // std::cout << "cuMemAddressFree ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
-                for (size_t i = 0ULL; i < index_handles; i++) {
+                va_ranges.clear();
+                for (size_t i = 0ULL; i < handles.size(); i++) {
                     status = cuMemRelease(handles[i]);
                     // std::cout << "cuMemRelease ===== " << status << '\n';
                     assert(status == CUDA_SUCCESS);
                 }
+                handles.clear();
+                handle_sizes.clear();
             }
             // return mem_res->do_deallocate(p, n * sizeof(T), THRUST_ALIGNOF(T));
         }
