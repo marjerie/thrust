@@ -328,7 +328,7 @@ class virtual_memory_resource_allocator : public thrust::mr::allocator<T, Upstre
             accessDesc.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
 
             cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
-            chunk_sz = chunk_sz * 2;
+            // chunk_sz = chunk_sz * 2;
             // status = cuMemGetAllocationGranularity(&chunk_sz, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM);
             // std::cout << "chunk size: " << chunk_sz << '\n';
 
